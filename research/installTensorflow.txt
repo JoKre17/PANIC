@@ -1,0 +1,14 @@
+Install Tensorflow 1.4:
+CUDA Toolkit: http://docs.nvidia.com/cuda/cuda-installation-guide-microsoft-windows/ (Version 8.0)
+CuDNN 6.1: https://developer.nvidia.com/cudnn (Version 6.1) (Account required)
+
+Füge die benötigten Pfade zu PATH hinzu. (%CUDA_PATH%/bin)
+CUDA_PATH sollte bei der installation erzeugt worden sein.
+
+Installiert sein sollte:
+Python 3 (Windows Installer!)
+Pip ist dann schon mit dabei => Python und Pip in PATH
+
+CPU only oder mit GPU:
+pip3 install --upgrade tensorflow
+pip3 install --upgrade tensorflow-gpu

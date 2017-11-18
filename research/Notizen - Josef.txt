@@ -1,0 +1,13 @@
+Aus: http://blog.aylien.com/introduction-generative-adversarial-networks-code-tensorflow/ 18.11.2017
+
+GANs - Generative Adversarial Network:
+
+Unterschied zwischen Discriminative / Generative:
+
+Discriminative lernt eine Funktion die Input Data X zu einer gewünschten Ausgangsklasse y mappt. Sie lernen die konditionelle Verteilung P(y|x)
+
+Generative versucht die kombinierte Wahrscheinlichkeit von Input Data X und Ausgangsklasse y gleichzeitig zu lernen (P(x,y)).
+Diese generative Fähigkeit kann genutzt werden, um komplett neue (x,y) samples zu erzeugen.
+
+Generative Netzwerke haben das Potenzial, die darunterliegende Struktur der Input Data zu verstehen und zu erklären, auch wenn es keine Label gibt.
+=> oftmals gewünscht, da oftmals keine Label in der echten Welt vorhanden sind
