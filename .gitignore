@@ -102,3 +102,7 @@ ENV/
 
 # Tensorboard output
 **/tensorboard
+
+.idea
+examples/oreilly/gen_result_images
+**/*.tif

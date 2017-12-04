@@ -151,13 +151,14 @@ writer = tf.summary.FileWriter(logdir, sess.graph)
 sess.run(tf.global_variables_initializer())
 
 saver = tf.train.Saver()
+amountImages = 10
 with tf.Session() as sess:
     saver.restore(sess, 'pretrained-model/pretrained_gan.ckpt')
-    z_batch = np.random.normal(0, 1, size=[10, z_dimensions])
+    z_batch = np.random.normal(0, 1, size=[amountImages, z_dimensions])
     z_placeholder = tf.placeholder(tf.float32, [None, z_dimensions], name='z_placeholder') 
-    generated_images = generator(z_placeholder, 10, z_dimensions)
+    generated_images = generator(z_placeholder, amountImages, z_dimensions)
     images = sess.run(generated_images, {z_placeholder: z_batch})
-    for i in range(10):
+    for i in range(amountImages):
         plt.imshow(images[i].reshape([28, 28]), cmap='Greys')
         #plt.show()
         print("Saving gen_result_images/result_" + str(i) + ".png")
