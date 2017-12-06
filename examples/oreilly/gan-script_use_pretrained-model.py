@@ -153,6 +153,8 @@ sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
 amountImages = 10
 with tf.Session() as sess:
+    #saver = tf.train.import_meta_graph('pretrained-model/gan-script-fast/model.meta')
+    #saver.restore(sess, 'pretrained-model/gan-script-fast/model')
     saver.restore(sess, 'pretrained-model/pretrained_gan.ckpt')
     z_batch = np.random.normal(0, 1, size=[amountImages, z_dimensions])
     z_placeholder = tf.placeholder(tf.float32, [None, z_dimensions], name='z_placeholder') 

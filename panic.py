@@ -33,5 +33,11 @@ def main():
 
 	# Now comes the fun part with neuronal nets !!!
 
-if __name__ == "__main__":
-	main()
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("Catched. :)")
+    finally:
+        #Like for example save the tensorflow model of the actual iteration
+        print("Finally stopping.")

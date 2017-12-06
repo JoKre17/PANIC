@@ -177,7 +177,7 @@ for i in range(100000):
         summary = sess.run(merged, {z_placeholder: z_batch, x_placeholder: real_image_batch})
         writer.add_summary(summary, i)
 		
-    if i % 10000 == 0:
+    if i % 5000 == 0:
         saver.save(sess, 'pretrained-model/gan-script/model', global_step=i)
 		
 saver.save(sess, 'pretrained-model/gan-script/model')
