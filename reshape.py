@@ -14,41 +14,41 @@ def distortImageToResolution(image, newDim=[100, 100]):
     newDim.extend(np.zeros(2))
     newDim = newDim[:2]
 
-    img = np.array(image.convert("L"), dtype=np.uint8)
+    img = np.array(image, dtype=np.uint8)
 
     x_scale = newDim[0] / img.shape[0]
     y_scale = newDim[1] / img.shape[1]
-    x_dist = np.arange(newDim[0]) / x_scale
-    y_dist = np.arange(newDim[1]) / y_scale
+    x_dist = (np.array(np.arange(newDim[0])) / x_scale).astype(int)
+    y_dist = (np.array(np.arange(newDim[1])) / y_scale).astype(int)
 
-    x_scaled = img[x_dist.astype(int)]
-    newImage = np.transpose(x_scaled)[y_dist.astype(int)]
+    img = img[x_dist]
+    newImage = np.transpose(img, (1,0,2))[y_dist]
 
     return Image.fromarray(newImage)
 
 '''
 Takes a image and newDim array defining the new dimensions
 '''
-def convertImageToResolution(image, newDim=[100, 100]):
+def centerImageToResolution(image, newDim=[100, 100]):
     newDim.extend(np.zeros(2))
     newDim = newDim[:2]
 
-    img = np.array(image.convert("L"), dtype=np.uint8)
-    startIndices = ((newDim - np.array(img.shape)) / 2).astype(int)
+    img = np.array(image, dtype=np.uint8)
+    startIndices = ((newDim - np.array(img.shape[:2])) / 2).astype(int)
 
-    newImage = np.ones(newDim, dtype=np.uint8) * 255
+    newImage = np.transpose(np.array([np.zeros(newDim, dtype=np.uint8)]*4), (1,2,0))
     newImage[startIndices[0]:startIndices[0] + img.shape[0], startIndices[1]:startIndices[1] + img.shape[1]] = img
 
     return Image.fromarray(newImage)
 
-def processImages():
+def processPNGImages():
     for filename in glob.glob(resourcePath + "*"):
         im = Image.open(filename)
 
         reshaped = distortImageToResolution(im, [100, 100])
-        centered = convertImageToResolution(im, [100, 100])
+        centered = centerImageToResolution(im, [100, 100])
 
-        reshaped.save(reshapedPath + os.path.basename(filename), "PNG")
-        centered.save(centeredPath + os.path.basename(filename), "PNG")
+        reshaped.save(reshapedPath + os.path.basename(filename), im.format)
+        centered.save(centeredPath + os.path.basename(filename), im.format)
 
-processImages()
+processPNGImages()

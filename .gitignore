@@ -106,3 +106,5 @@ ENV/
 .idea
 examples/oreilly/gen_result_images
 **/*.tif
+**/objects_*
+examples/oreilly/pretrained-model/gan*
