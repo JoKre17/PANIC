@@ -108,3 +108,6 @@ examples/oreilly/gen_result_images
 **/*.tif
 **/objects_*
 examples/oreilly/pretrained-model/gan*
+
+# Visual studio project stuff
+.vs/
