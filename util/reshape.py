@@ -7,8 +7,19 @@ resourcePath = os.getcwd() + "/resources/objects/"
 reshapedPath = os.getcwd() + "/resources/objects_reshaped/"
 centeredPath = os.getcwd() + "/resources/objects_centered/"
 
+# make dirs
+if not os.path.exists(resourcePath):
+    os.makedirs(resourcePath)
+
+if not os.path.exists(reshapedPath):
+    os.makedirs(reshapedPath)
+
+if not os.path.exists(centeredPath):
+    os.makedirs(centeredPath)
+
 '''
 Takes a image and newDim array defining the new dimensions
+works actually only for RGBA image formats from pillow package
 '''
 def distortImageToResolution(image, newDim=[100, 100]):
     newDim.extend(np.zeros(2))
@@ -28,6 +39,7 @@ def distortImageToResolution(image, newDim=[100, 100]):
 
 '''
 Takes a image and newDim array defining the new dimensions
+works actually only for RGBA image formats from pillow package
 '''
 def centerImageToResolution(image, newDim=[100, 100]):
     newDim.extend(np.zeros(2))
@@ -46,9 +58,37 @@ def processPNGImages():
         im = Image.open(filename)
 
         reshaped = distortImageToResolution(im, [100, 100])
-        centered = centerImageToResolution(im, [100, 100])
+        centered = centerImageToResolution(im, [100, 100]).convert("L")
 
         reshaped.save(reshapedPath + os.path.basename(filename), im.format)
         centered.save(centeredPath + os.path.basename(filename), im.format)
 
-processPNGImages()
+def loadImagesFromDirAsArray(dirPath):
+    processPNGImages()
+    images = []
+    for filename in glob.glob(dirPath + "*"):
+        im = Image.open(filename)
+        images.append(np.array(im.convert("L"), dtype=np.uint8))
+
+    return images
+
+def getFilesInDir(dir):
+    filenames = []
+    for filename in glob.glob(dir + "*"):
+        filenames.append(filename)
+
+    return filenames
+
+
+def getDistortedImagePaths():
+    return getFilesInDir(reshapedPath)
+
+def loadDistortedImagesAsArray():
+    return loadImagesFromDirAsArray(reshapedPath)
+
+def getCenterdImagePaths():
+    return getFilesInDir(centeredPath)
+
+def loadCenteredImagesAsArray():
+    return loadImagesFromDirAsArray(centeredPath)
+
