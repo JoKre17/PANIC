@@ -111,3 +111,7 @@ examples/oreilly/pretrained-model/gan*
 
 # Visual studio project stuff
 .vs/
+
+# Exclude models
+Jonas' Playground/models/
+Jonas' Playground/testing mnist/models/
