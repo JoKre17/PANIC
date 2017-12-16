@@ -8,33 +8,55 @@ import matplotlib.pyplot as plt
 sess = tf.Session()
 
 # Define directory for tensorboard logs
-LOGDIR = "tensorboard/gan_new/run1"
+LOGDIR = "tensorboard/gan_med/run2"
+
+HEIGHT, WIDTH, CHANNEL = 28, 28, 1
+
+BATCH_SIZE = 50
+
+EPOCH = 5000
 
 # Load dataset
 # MNIST contains 28x28 pictures of handwritten numbers
-from tensorflow.examples.tutorials.mnist import input_data
-mnist = input_data.read_data_sets("MNIST_data/")
+#from tensorflow.examples.tutorials.mnist import input_data
+#mnist = input_data.read_data_sets("MNIST_data/")
 
 # Load our dataset
-dataPath = "objects_centered/"
-fileNames = os.listdir(dataPath)
+def process_data(): 
+	current_dir = os.getcwd()
+	# parent = os.path.dirname(current_dir)
+	image_dir = os.path.join(current_dir, 'data')
+	images = []
+	for each in os.listdir(image_dir):
+		images.append(os.path.join(image_dir,each))
+	# print images    
+	all_images = tf.convert_to_tensor(images, dtype = tf.string)
 
-fileNames_queue = tf.train.string_input_producer(fileNames)
+	images_queue = tf.train.slice_input_producer([all_images])
 
-reader = tf.WholeFileReader()
-filename, content = reader.read(fileNames_queue)
-image = tf.image.decode_jpeg(content, channels=1)
-image = tf.cast(image, tf.float32)
-resized_image = tf.image.resize_images(image, [28, 28])
+	content = tf.read_file(images_queue[0])
+	image = tf.image.decode_png(content, channels = CHANNEL)
+	#sess1 = tf.Session()
+	#sess1.run(image)
+	image = tf.image.random_flip_left_right(image)
+	image = tf.image.random_brightness(image, max_delta = 0.1)
+	image = tf.image.random_contrast(image, lower = 0.9, upper = 1.1)
+	# noise = tf.Variable(tf.truncated_normal(shape = [HEIGHT,WIDTH,CHANNEL], dtype = tf.float32, stddev = 1e-3, name = 'noise')) 
+	# print image.get_shape()
+	size = [HEIGHT, WIDTH]
+	image = tf.image.resize_images(image, size)
+	image.set_shape([HEIGHT,WIDTH,CHANNEL])
+	# image = image + noise
+	# image = tf.transpose(image, perm=[2, 0, 1])
+	# print image.get_shape()
 
-image_batch = tf.train.batch([resized_image], batch_size=10)
-with sess.as_default():
-	print(image_batch.eval())
-#(image_batch.eval())
-mnist_batch = mnist.train.next_batch(10)
-print(mnist_batch)
-mnist_batch = mnist.train.next_batch(10)[0].reshape([10, 28, 28, 1])
-#print(mnist_batch)
+	image = tf.cast(image, tf.float32)
+	#image = image / 255.0
+	images_batch = tf.train.shuffle_batch([image], batch_size = BATCH_SIZE, num_threads = 4, capacity = 200 + 3* BATCH_SIZE, min_after_dequeue = 200)
+	#num_images = len(images)
+
+	return images_batch
+
 '''
 first_image = image_batch[1]
 print(first_image)
@@ -104,7 +126,6 @@ Generator that creates images from it's weights and a noise vector
 '''
 def generator(batch_size, z_dim):
 	with tf.name_scope("gernerator"):
-
 		# Create a noise vector
 		z = tf.truncated_normal([batch_size, z_dim], mean=0, stddev=1, name="z")
 
@@ -147,111 +168,143 @@ def generator(batch_size, z_dim):
 
 		return g4
 
-# Variable declaration and initialization
-sess = tf.Session()
 
-batch_size = 50
-z_dimensions = 100
+def train():
+	
+	image_batch = process_data()
+	print(image_batch)
 
-# real images to discriminator
-x_placeholder = tf.placeholder("float", shape=[None, 28, 28, 1], name="x_placeholder")
+	# Variable declaration and initialization
+	batch_size = 50
+	z_dimensions = 100
 
-# Gz will contain generated images
-Gz = generator(batch_size, z_dimensions)
+	# real images to discriminator
+	x_placeholder = tf.placeholder(tf.float32, shape=[None, 28, 28, 1], name="x_placeholder")
 
-# Dx will contain discrininator's probability values for real images
-Dx = discriminator(x_placeholder)
+	# Gz will contain generated images
+	Gz = generator(batch_size, z_dimensions)
 
-# Dg will contain discrininator's probability values for generated (fake) images
-Dg = discriminator(Gz, reuse=True)
+	# Dx will contain discrininator's probability values for real images
+	Dx = discriminator(x_placeholder)
 
-# Losses for generator and discriminator
-g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=Dg, labels=tf.ones_like(Dg)))
+	# Dg will contain discrininator's probability values for generated (fake) images
+	Dg = discriminator(Gz, reuse=True)
 
-d_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=Dx, labels=tf.fill([batch_size, 1], 0.9)))
-d_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=Dg, labels=tf.zeros_like(Dg)))
-d_loss = d_loss_real + d_loss_fake
+	# Losses for generator and discriminator
+	g_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=Dg, labels=tf.ones_like(Dg)))
 
-tvars = tf.trainable_variables()
+	d_loss_real = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=Dx, labels=tf.fill([batch_size, 1], 0.9)))
+	d_loss_fake = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=Dg, labels=tf.zeros_like(Dg)))
+	d_loss = d_loss_real + d_loss_fake
 
-d_vars = [var for var in tvars if 'd_' in var.name]
-g_vars = [var for var in tvars if 'g_' in var.name]
+	tvars = tf.trainable_variables()
 
-# Training of generator and discriminator
-with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE) as scope:
+	d_vars = [var for var in tvars if 'd_' in var.name]
+	g_vars = [var for var in tvars if 'g_' in var.name]
 
-	d_trainer_fake = tf.train.AdamOptimizer(0.001).minimize(d_loss_fake, var_list=d_vars)
-	d_trainer_real = tf.train.AdamOptimizer(0.001).minimize(d_loss_real, var_list=d_vars)
+	# Training of generator and discriminator
+	with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE) as scope:
 
-	g_trainer = tf.train.AdamOptimizer(0.001).minimize(g_loss, var_list=g_vars)
+		d_trainer_fake = tf.train.AdamOptimizer(0.001).minimize(d_loss_fake, var_list=d_vars)
+		d_trainer_real = tf.train.AdamOptimizer(0.001).minimize(d_loss_real, var_list=d_vars)
 
-# Outputs scalar values to tensorboard
-tf.summary.scalar('Generator_loss', g_loss)
-tf.summary.scalar('Discriminator_loss_real', d_loss_real)
-tf.summary.scalar('Discriminator_loss_fake', d_loss_fake)
+		g_trainer = tf.train.AdamOptimizer(0.001).minimize(g_loss, var_list=g_vars)
 
-d_real_count_ph = tf.placeholder(tf.float32)
-d_fake_count_ph = tf.placeholder(tf.float32)
-g_count_ph = tf.placeholder(tf.float32)
+	# Outputs scalar values to tensorboard
+	tf.summary.scalar('Generator_loss', g_loss)
+	tf.summary.scalar('Discriminator_loss_real', d_loss_real)
+	tf.summary.scalar('Discriminator_loss_fake', d_loss_fake)
 
-tf.summary.scalar('d_real_count', d_real_count_ph)
-tf.summary.scalar('d_fake_count', d_fake_count_ph)
-tf.summary.scalar('g_count', g_count_ph)
+	d_real_count_ph = tf.placeholder(tf.float32)
+	d_fake_count_ph = tf.placeholder(tf.float32)
+	g_count_ph = tf.placeholder(tf.float32)
 
-# Sanity check to see how the discriminator evaluates
-# generated and real MNIST images
-d_on_generated = tf.reduce_mean(discriminator(generator(batch_size, z_dimensions)))
-d_on_real = tf.reduce_mean(discriminator(x_placeholder))
+	tf.summary.scalar('d_real_count', d_real_count_ph)
+	tf.summary.scalar('d_fake_count', d_fake_count_ph)
+	tf.summary.scalar('g_count', g_count_ph)
 
-tf.summary.scalar('d_on_generated_eval', d_on_generated)
-tf.summary.scalar('d_on_real_eval', d_on_real)
+	# Sanity check to see how the discriminator evaluates
+	# generated and real MNIST images
+	d_on_generated = tf.reduce_mean(discriminator(generator(batch_size, z_dimensions)))
+	d_on_real = tf.reduce_mean(discriminator(x_placeholder))
 
-images_for_tensorboard = generator(batch_size, z_dimensions)
-tf.summary.image('Generated_images', images_for_tensorboard, 10)
-merged = tf.summary.merge_all()
-writer = tf.summary.FileWriter(LOGDIR)
-writer.add_graph(sess.graph)
-print("Run tensorboard --logdir=", LOGDIR)
+	tf.summary.scalar('d_on_generated_eval', d_on_generated)
+	tf.summary.scalar('d_on_real_eval', d_on_real)
 
-saver = tf.train.Saver()
+	sess = tf.Session()
+	saver = tf.train.Saver()
 
-sess.run(tf.global_variables_initializer())
+	images_for_tensorboard = generator(batch_size, z_dimensions)
+	tf.summary.image('Generated_images', images_for_tensorboard, 10)
+	merged = tf.summary.merge_all()
+	writer = tf.summary.FileWriter(LOGDIR)
+	writer.add_graph(sess.graph)
+	print("Run tensorboard --logdir=", LOGDIR)
+
+	sess.run(tf.local_variables_initializer())
+	sess.run(tf.global_variables_initializer())
+
+	coord = tf.train.Coordinator()
+	threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+	# Training
+	gLoss = 0
+	dLossFake, dLossReal = 1, 1
+	d_real_count, d_fake_count, g_count = 0, 0, 0
+
+	print("Start training")
+	for i in range(2000):
+		#real_image_batch = mnist.train.next_batch(batch_size)[0].reshape([batch_size, 28, 28, 1])
+		#print(real_image_batch = tf.train.batch([resized_image], batch_size=10).eval(session=sess))
+		#image_batch = process_data()
+		#print("processed")
+		#batch = sess.run(image_batch)
+		with sess.as_default():
+			batch = image_batch.eval()
+		#print("Eval done")
+		#print(real_image_batch)
+		#batch = process_data()
+		#handle = tf.get_session_handle(real_image_batch)
+
+		#handle = sess.run(handle) 
+		#print(handle)
+
+		if dLossFake > 0.6:
+			# Train discriminator on generated images
+			#print("dlossfake")
+			_, dLossReal, dLossFake, gLoss = sess.run([d_trainer_fake, d_loss_real, d_loss_fake, g_loss],
+													{x_placeholder: batch})
+			#print("after dlossfake")
+			d_fake_count += 1
+
+		if gLoss > 0.5:
+			# Train the generator
+			_, dLossReal, dLossFake, gLoss = sess.run([g_trainer, d_loss_real, d_loss_fake, g_loss],
+													{x_placeholder: batch})
+			g_count += 1
+
+		if dLossReal > 0.45:
+			# If the discriminator classifies real images as fake,
+			# train discriminator on real values
+			_, dLossReal, dLossFake, gLoss = sess.run([d_trainer_real, d_loss_real, d_loss_fake, g_loss],
+													{x_placeholder: batch})
+			d_real_count += 1
+
+		if i % 10 == 0:
+			#real_image_batch = mnist.validation.next_batch(batch_size)[0].reshape([batch_size, 28, 28, 1])
+			with sess.as_default():
+				batch = image_batch.eval()
+			summary = sess.run(merged, {x_placeholder: batch, d_real_count_ph: d_real_count,
+											d_fake_count_ph: d_fake_count, g_count_ph: g_count})
+			writer.add_summary(summary, i)
+			d_real_count, d_fake_count, g_count = 0, 0, 0
+			print("Iteration ", i)
+	
+		if i % 5000 == 0:
+			save_path = saver.save(sess, "models/pretrained_gan.ckpt", global_step=i)
+			print("saved to %s" % save_path)
 
 
-# Training
-gLoss = 0
-dLossFake, dLossReal = 1, 1
-d_real_count, d_fake_count, g_count = 0, 0, 0
-for i in range(2000):
-	real_image_batch = mnist.train.next_batch(batch_size)[0].reshape([batch_size, 28, 28, 1])
-	#print(real_image_batch = tf.train.batch([resized_image], batch_size=10).eval(session=sess))
-	if dLossFake > 0.6:
-		# Train discriminator on generated images
-		_, dLossReal, dLossFake, gLoss = sess.run([d_trainer_fake, d_loss_real, d_loss_fake, g_loss],
-												{x_placeholder: real_image_batch})
-		d_fake_count += 1
-
-	if gLoss > 0.5:
-		# Train the generator
-		_, dLossReal, dLossFake, gLoss = sess.run([g_trainer, d_loss_real, d_loss_fake, g_loss],
-												{x_placeholder: real_image_batch})
-		g_count += 1
-
-	if dLossReal > 0.45:
-		# If the discriminator classifies real images as fake,
-		# train discriminator on real values
-		_, dLossReal, dLossFake, gLoss = sess.run([d_trainer_real, d_loss_real, d_loss_fake, g_loss],
-												{x_placeholder: real_image_batch})
-		d_real_count += 1
-
-	if i % 10 == 0:
-		real_image_batch = mnist.validation.next_batch(batch_size)[0].reshape([batch_size, 28, 28, 1])
-		summary = sess.run(merged, {x_placeholder: real_image_batch, d_real_count_ph: d_real_count,
-										d_fake_count_ph: d_fake_count, g_count_ph: g_count})
-		writer.add_summary(summary, i)
-		d_real_count, d_fake_count, g_count = 0, 0, 0
-		print("Iteration ", i)
-
-	if i % 5000 == 0:
-		save_path = saver.save(sess, "models/pretrained_gan.ckpt", global_step=i)
-		print("saved to %s" % save_path)
+if __name__ == "__main__":
+	train()
+	# test()
