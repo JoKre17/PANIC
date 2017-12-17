@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 import PIL
-os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
+os.environ['TF_CPP_MIN_LOG_LEVEL']='1'
 import tensorflow as tf
 import numpy as np
 import datetime
@@ -10,9 +10,13 @@ import matplotlib.pyplot as plt
 sess = tf.Session()
 
 # Define directory for tensorboard logs
-LOGDIR = "tensorboard/gan_med/run2"
+LOGDIR = "tensorboard/gan_med/bigImages_v1"
 
-HEIGHT, WIDTH, CHANNEL = 28, 28, 1
+# Define input dataset
+#data_selection = "standard"
+data_selection = "centered_bw"
+
+HEIGHT, WIDTH, CHANNEL = 100, 100, 1
 
 BATCH_SIZE = 50
 
@@ -28,6 +32,7 @@ def process_data():
 	current_dir = os.getcwd()
 	# parent = os.path.dirname(current_dir)
 	image_dir = os.path.join(current_dir, 'data')
+	image_dir = os.path.join(image_dir, data_selection)
 	images = []
 	for each in os.listdir(image_dir):
 		images.append(os.path.join(image_dir,each))
@@ -37,12 +42,12 @@ def process_data():
 	images_queue = tf.train.slice_input_producer([all_images])
 
 	content = tf.read_file(images_queue[0])
-	image = tf.image.decode_png(content, channels = CHANNEL)
+	image = tf.image.decode_jpeg(content, channels = CHANNEL)
 	#sess1 = tf.Session()
 	#sess1.run(image)
 	image = tf.image.random_flip_left_right(image)
-	image = tf.image.random_brightness(image, max_delta = 0.1)
-	image = tf.image.random_contrast(image, lower = 0.9, upper = 1.1)
+	#image = tf.image.random_brightness(image, max_delta = 0.1)
+	#image = tf.image.random_contrast(image, lower = 0.9, upper = 1.1)
 	# noise = tf.Variable(tf.truncated_normal(shape = [HEIGHT,WIDTH,CHANNEL], dtype = tf.float32, stddev = 1e-3, name = 'noise')) 
 	# print image.get_shape()
 	size = [HEIGHT, WIDTH]
@@ -58,17 +63,6 @@ def process_data():
 	#num_images = len(images)
 
 	return images_batch
-
-'''
-first_image = image_batch[1]
-print(first_image)
-first_imag = np.array(first_image, dtype='object')
-pixels = first_imag.reshape((100, 100))
-plt.imshow(first_imag, cmap='gray')
-plt.show()
-'''
-
-
 
 '''
 Discriminator that gets images as input and classifies them as real/fake.
@@ -88,7 +82,7 @@ def discriminator(x_image, reuse=False):
 		# First convoluational layer
 		# Finds 32 5x5 features
 		# After the first convolution the input images will be 14x14 pixel
-		d_w1 = tf.get_variable("d_w1", [5, 5, 1, 32], initializer=tf.truncated_normal_initializer(stddev=0.02))
+		d_w1 = tf.get_variable("d_w1", [10, 10, 1, 32], initializer=tf.truncated_normal_initializer(stddev=0.02))
 		d_b1 = tf.get_variable("d_b1", [32], initializer=tf.constant_initializer(0))
 
 		d1 = tf.nn.conv2d(input=x_image, filter=d_w1, strides=[1, 1, 1, 1], padding="SAME")
@@ -99,7 +93,7 @@ def discriminator(x_image, reuse=False):
 		# Second convolutional layer
 		# This finds 64 5x5 features
 		# Second convolution shrinks the images to 7x7 pixels
-		d_w2 = tf.get_variable("d_w2", [5, 5, 32, 64], initializer=tf.truncated_normal_initializer(stddev=0.02))
+		d_w2 = tf.get_variable("d_w2", [10, 10, 32, 64], initializer=tf.truncated_normal_initializer(stddev=0.02))
 		d_b2 = tf.get_variable("d_b2", [64], initializer=tf.constant_initializer(0))
 
 		d2 = tf.nn.conv2d(input=d1, filter=d_w2, strides=[1, 1, 1, 1], padding="SAME")
@@ -108,10 +102,10 @@ def discriminator(x_image, reuse=False):
 		d2 = tf.nn.avg_pool(d2, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
 
 		# First fully connected layer
-		d_w3 = tf.get_variable("d_w3", [7 * 7 * 64, 1024], initializer=tf.truncated_normal_initializer(stddev=0.02))
+		d_w3 = tf.get_variable("d_w3", [25 * 25 * 64, 1024], initializer=tf.truncated_normal_initializer(stddev=0.02))
 		d_b3 = tf.get_variable("d_b3", [1024], initializer=tf.constant_initializer(0))
 
-		d3 = tf.reshape(d2, [-1 , 7 * 7 * 64])
+		d3 = tf.reshape(d2, [-1 , 25 * 25 * 64])
 		d3 = tf.matmul(d3, d_w3) + d_b3
 		d3 = tf.nn.relu(d3)
 
@@ -132,11 +126,11 @@ def generator(batch_size, z_dim):
 		z = tf.truncated_normal([batch_size, z_dim], mean=0, stddev=1, name="z")
 
 		# Deconvolutional layer
-		g_w1 = tf.get_variable("g_w1", [z_dim, 3136], dtype=tf.float32, initializer=tf.truncated_normal_initializer(stddev=0.02))
-		g_b1 = tf.get_variable("g_b1", [3136], initializer=tf.truncated_normal_initializer(stddev=0.02))
+		g_w1 = tf.get_variable("g_w1", [z_dim, 25 * 25 * 64], dtype=tf.float32, initializer=tf.truncated_normal_initializer(stddev=0.02))
+		g_b1 = tf.get_variable("g_b1", [25 * 25 * 64], initializer=tf.truncated_normal_initializer(stddev=0.02))
 
 		g1 = tf.matmul(z, g_w1) + g_b1
-		g1 = tf.reshape(g1, [-1, 56, 56, 1])
+		g1 = tf.reshape(g1, [-1, 200, 200, 1])
 		g1 = tf.contrib.layers.batch_norm(g1, epsilon=1e-5, scope="bn1")
 		g1 = tf.nn.relu(g1)
 
@@ -147,7 +141,7 @@ def generator(batch_size, z_dim):
 		g2 = g2 + g_b2
 		g2 = tf.contrib.layers.batch_norm(g2, epsilon=1e-5, scope="bn2")
 		g2 = tf.nn.relu(g2)
-		g2 = tf.image.resize_images(g2, [56, 56])
+		g2 = tf.image.resize_images(g2, [200, 200])
 
 		# Generate 25 features
 		g_w3 = tf.get_variable("g_w3", [3, 3, z_dim/2, z_dim/4], dtype=tf.float32, initializer=tf.truncated_normal_initializer(stddev=0.02))
@@ -156,7 +150,7 @@ def generator(batch_size, z_dim):
 		g3 = g3 + g_b3
 		g3 = tf.contrib.layers.batch_norm(g3, epsilon=1e-5, scope="bn3")
 		g3 = tf.nn.relu(g3)
-		g3 = tf.image.resize_images(g3, [56, 56])
+		g3 = tf.image.resize_images(g3, [200, 200])
 
 		# Final convolution with one output channel
 		g_w4 = tf.get_variable("g_w4", [1, 1, z_dim/4, 1], dtype=tf.float32, initializer=tf.truncated_normal_initializer(stddev=0.02))
@@ -170,12 +164,14 @@ def generator(batch_size, z_dim):
 
 		return g4
 
-
+'''
+Training function that handles the training and placeholder definition
+'''
 def train():
 	
 	image_batch = process_data()
 	print(image_batch)
-	Image.fromarray(np.asarray(image_batch[0])).show()
+	#Image.fromarray(np.asarray(image_batch[0])).show()
 
 	#plt.imshow(image_batch[0])
 	#plt.show()
@@ -187,7 +183,7 @@ def train():
 	z_dimensions = 100
 
 	# real images to discriminator
-	x_placeholder = tf.placeholder(tf.float32, shape=[None, 28, 28, 1], name="x_placeholder")
+	x_placeholder = tf.placeholder(tf.float32, shape=[None, 100, 100, 1], name="x_placeholder")
 
 	# Gz will contain generated images
 	Gz = generator(batch_size, z_dimensions)
@@ -242,6 +238,8 @@ def train():
 	sess = tf.Session()
 	saver = tf.train.Saver()
 
+	tf.summary.image('Input_images', image_batch, 10)
+
 	images_for_tensorboard = generator(batch_size, z_dimensions)
 	tf.summary.image('Generated_images', images_for_tensorboard, 10)
 	merged = tf.summary.merge_all()
@@ -263,19 +261,11 @@ def train():
 	print("Start training")
 	for i in range(2000):
 		#real_image_batch = mnist.train.next_batch(batch_size)[0].reshape([batch_size, 28, 28, 1])
-		#print(real_image_batch = tf.train.batch([resized_image], batch_size=10).eval(session=sess))
-		#image_batch = process_data()
-		#print("processed")
-		#batch = sess.run(image_batch)
+		
+		print(i)
+
 		with sess.as_default():
 			batch = image_batch.eval()
-		#print("Eval done")
-		#print(real_image_batch)
-		#batch = process_data()
-		#handle = tf.get_session_handle(real_image_batch)
-
-		#handle = sess.run(handle) 
-		#print(handle)
 
 		if dLossFake > 0.6:
 			# Train discriminator on generated images
