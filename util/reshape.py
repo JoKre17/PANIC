@@ -6,6 +6,8 @@ import glob
 resourcePath = os.getcwd() + "/resources/objects/"
 reshapedPath = os.getcwd() + "/resources/objects_reshaped/"
 centeredPath = os.getcwd() + "/resources/objects_centered/"
+reshapedBWPath = os.getcwd() + "/resources/objects_bw_reshaped/"
+centeredBWPath = os.getcwd() + "/resources/objects_bw_centered/"
 
 # make dirs
 if not os.path.exists(resourcePath):
@@ -16,6 +18,12 @@ if not os.path.exists(reshapedPath):
 
 if not os.path.exists(centeredPath):
     os.makedirs(centeredPath)
+
+if not os.path.exists(reshapedBWPath):
+    os.makedirs(reshapedBWPath)
+
+if not os.path.exists(centeredBWPath):
+    os.makedirs(centeredBWPath)
 
 '''
 Takes a image and newDim array defining the new dimensions
@@ -58,10 +66,23 @@ def processPNGImages():
         im = Image.open(filename)
 
         reshaped = distortImageToResolution(im, [100, 100])
-        centered = centerImageToResolution(im, [100, 100]).convert("L")
+        centered = centerImageToResolution(im, [100, 100])
 
-        reshaped.save(reshapedPath + os.path.basename(filename), im.format)
-        centered.save(centeredPath + os.path.basename(filename), im.format)
+        # convert transparent pixel to white
+        reshaped_arr = np.array(reshaped)
+        reshaped_arr = reshaped_arr + np.array(reshaped_arr[:, :] == 0) * 255
+        reshaped_arr = np.array(reshaped_arr, 'uint8')
+        reshaped_bw = Image.fromarray(reshaped_arr, 'RGBA').convert('L')
+
+        centered_arr = np.array(centered)
+        centered_arr = centered_arr + np.array(centered_arr[:, :] == 0) * 255
+        centered_arr = np.array(centered_arr, 'uint8')
+        centered_bw = Image.fromarray(centered_arr, 'RGBA').convert('L')
+
+        reshaped.save(reshapedPath + os.path.basename(filename).split(".")[0] + "." + im.format, im.format)
+        centered.save(centeredPath + os.path.basename(filename).split(".")[0] + "." + im.format, im.format)
+        reshaped_bw.save(reshapedBWPath + os.path.basename(filename).split(".")[0] + "." + 'JPEG', 'JPEG')
+        centered_bw.save(centeredBWPath + os.path.basename(filename).split(".")[0] + "." + 'JPEG', 'JPEG')
 
 def loadImagesFromDirAsArray(dirPath):
     processPNGImages()
@@ -92,3 +113,6 @@ def getCenterdImagePaths():
 def loadCenteredImagesAsArray():
     return loadImagesFromDirAsArray(centeredPath)
 
+if __name__ == '__main__':
+    print("Running reshape")
+    processPNGImages()

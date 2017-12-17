@@ -47,29 +47,6 @@ def main():
 	#x_train, x_test = loadSegmentationResources()
 	images = util.loadCenteredImagesAsArray()
 
-	filenames = util.getCenterdImagePaths()
-
-	# step 2
-	filename_queue = tf.train.string_input_producer(filenames)
-
-	# step 3: read, decode and resize images
-	reader = tf.WholeFileReader()
-	filename, content = reader.read(filename_queue)
-	image = tf.image.decode_png(content, channels=1)
-	image = tf.reshape(image, [100, 100])
-	# Generate batch
-	image = tf.cast(image, tf.float32)
-	num_preprocess_threads = mp.cpu_count()
-	batch_size = 10
-	image_batch = tf.train.shuffle_batch(
-		[image],
-		batch_size=batch_size,
-		num_threads=num_preprocess_threads,
-		capacity=42,
-		min_after_dequeue=10)
-
-	gen_image(image_batch[0]).show()
-
 	# Now comes the fun part with neuronal nets !!!
 
 if __name__ == '__main__':
