@@ -1,4 +1,6 @@
 import os
+from PIL import Image
+import PIL
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 import tensorflow as tf
 import numpy as np
@@ -51,7 +53,7 @@ def process_data():
 	# print image.get_shape()
 
 	image = tf.cast(image, tf.float32)
-	#image = image / 255.0
+	image = image / 255.0
 	images_batch = tf.train.shuffle_batch([image], batch_size = BATCH_SIZE, num_threads = 4, capacity = 200 + 3* BATCH_SIZE, min_after_dequeue = 200)
 	#num_images = len(images)
 
@@ -173,6 +175,12 @@ def train():
 	
 	image_batch = process_data()
 	print(image_batch)
+	Image.fromarray(np.asarray(image_batch[0])).show()
+
+	#plt.imshow(image_batch[0])
+	#plt.show()
+
+	
 
 	# Variable declaration and initialization
 	batch_size = 50
