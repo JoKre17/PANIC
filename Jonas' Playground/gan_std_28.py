@@ -10,15 +10,15 @@ import matplotlib.pyplot as plt
 sess = tf.Session()
 
 # Define directory for tensorboard logs
-LOGDIR = "tensorboard/gan_med/bigImages_v2"
+LOGDIR = "tensorboard/gan_med/std_28_v1"
 
 # Define input dataset
-#data_selection = "standard"
-data_selection = "centered_bw"
+data_selection = "standard"
+#data_selection = "centered_bw"
 
 HEIGHT, WIDTH, CHANNEL = 28, 28, 1
 
-BATCH_SIZE = 1
+BATCH_SIZE = 50
 
 EPOCH = 5000
 
@@ -179,7 +179,7 @@ def train():
 	
 
 	# Variable declaration and initialization
-	batch_size = 1
+	batch_size = 50
 	z_dimensions = 100
 
 	# real images to discriminator
