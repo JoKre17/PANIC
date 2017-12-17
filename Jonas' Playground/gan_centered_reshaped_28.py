@@ -18,7 +18,7 @@ data_selection = "centered_bw"
 
 HEIGHT, WIDTH, CHANNEL = 28, 28, 1
 
-BATCH_SIZE = 1
+BATCH_SIZE = 50
 
 EPOCH = 5000
 
@@ -179,7 +179,7 @@ def train():
 	
 
 	# Variable declaration and initialization
-	batch_size = 1
+	batch_size = 50
 	z_dimensions = 100
 
 	# real images to discriminator
